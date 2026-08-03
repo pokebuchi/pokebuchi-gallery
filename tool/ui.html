@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ポケぶち｜写真を入れる</title>
+<link rel="stylesheet" href="ui.css">
+</head>
+<body>
+
+<header class="bar">
+  <h1>写真を入れる</h1>
+  <button type="button" id="publish" class="publish">保存して公開する</button>
+</header>
+
+<section class="tray" id="tray">
+  <div class="drop" id="drop">
+    <p class="drop-main">ここに写真をまとめてドロップ</p>
+    <p class="drop-sub">クリックして選ぶこともできます（複数まとめてOK）</p>
+    <input type="file" id="file" accept="image/*,.heic,.heif" multiple hidden>
+  </div>
+  <div class="tray-body" id="tray-body" hidden>
+    <p class="tray-head">
+      未割り当て <b id="tray-count">0</b> 枚
+      <span class="hint">写真をクリックしてから、下の作品をクリック</span>
+      <button type="button" id="tray-clear" class="linkbtn">全部どける</button>
+    </p>
+    <div class="tray-list" id="tray-list"></div>
+  </div>
+</section>
+
+<nav class="tabs">
+  <button type="button" class="tab is-active" data-tab="waiting">
+    写真待ち <span id="n-waiting">0</span>
+  </button>
+  <button type="button" class="tab" data-tab="done">
+    入っている <span id="n-done">0</span>
+  </button>
+  <button type="button" class="tab" data-tab="cats">カテゴリ</button>
+  <button type="button" class="tab add-tab" data-tab="add">＋ 作品を追加</button>
+  <select id="pack-filter">
+    <option value="">すべてのパック</option>
+  </select>
+</nav>
+
+<section class="addbox" id="addbox" hidden>
+  <h2>作品を追加する</h2>
+  <p class="addbox-lead">BASEに出品したものを、写真待ちのリストに加えます。</p>
+
+  <div class="fields">
+    <label>
+      <span>カテゴリ</span>
+      <select id="f-category"></select>
+    </label>
+
+    <label>
+      <span>カード名</span>
+      <input type="text" id="f-name" placeholder="ゴウカザル" autocomplete="off">
+      <em id="hint-name">ギャラリーに表示される名前です</em>
+    </label>
+
+    <label id="row-pack">
+      <span>パック名</span>
+      <input type="text" id="f-pack" list="pack-list" placeholder="アビスアイ" autocomplete="off">
+      <datalist id="pack-list"></datalist>
+      <em>既にあるものは入力すると候補が出ます。新しいパックはそのまま入力してください</em>
+    </label>
+
+    <label id="row-number">
+      <span>カードナンバー</span>
+      <input type="text" id="f-number" placeholder="091/081" autocomplete="off">
+      <em>同じパックの中で並べる順番に使います。<br>
+        頭の型番（M5 など）は付けても付けなくても構いません</em>
+    </label>
+
+    <p class="renketsu-note wide" id="renketsu-note" hidden>
+      連結フレームはカード番号が1つに決まらないため、パック名とナンバーは使いません。<br>
+      追加すると<b>連結フレームの一番上</b>に入ります。順番はカテゴリタブで変えられます。
+    </p>
+
+    <label class="wide">
+      <span>商品URL</span>
+      <input type="url" id="f-url" placeholder="https://pokebuchi.base.shop/items/…" autocomplete="off">
+      <em>BASEの商品ページを開いて、アドレスをコピー・貼り付け</em>
+    </label>
+  </div>
+
+  <div class="addbox-actions">
+    <button type="button" class="ghost" id="add-cancel">やめる</button>
+    <button type="button" class="primary" id="add-save">追加する</button>
+  </div>
+</section>
+
+<main>
+  <p class="done-hint" id="done-hint" hidden>
+    作品をタップすると、名前や商品URLを直したり、削除したりできます。<br>
+    写真を差し替えるときは、上に写真をドロップしてから作品をタップしてください。
+  </p>
+  <div class="works" id="works"></div>
+  <p class="empty" id="empty" hidden></p>
+
+  <section class="cats" id="cats" hidden>
+    <p class="cats-lead">
+      ここで並べた順番が、そのままギャラリーの並び順になります。<br>
+      <b>▲▼</b> で上下に動かし、パックは <b>移動先</b> から別のカテゴリへ移せます。<br>
+      連結フレームだけは、パックではなく<b>作品そのもの</b>を並べ替えられます。
+    </p>
+    <div id="cats-list"></div>
+    <div class="cats-actions">
+      <button type="button" class="ghost" id="cats-reload">やり直す</button>
+      <button type="button" class="primary" id="cats-save">並び順を保存する</button>
+    </div>
+  </section>
+</main>
+
+<div class="modal" id="edit" hidden>
+  <div class="modal-box">
+    <h2 id="edit-title">作品を直す</h2>
+
+    <div class="fields">
+      <label>
+        <span>カード名</span>
+        <input type="text" id="e-name" autocomplete="off">
+      </label>
+
+      <label id="e-row-pack">
+        <span>パック名</span>
+        <input type="text" id="e-pack" list="pack-list" autocomplete="off">
+      </label>
+
+      <label id="e-row-number">
+        <span>カードナンバー</span>
+        <input type="text" id="e-number" autocomplete="off">
+      </label>
+
+      <label class="wide">
+        <span>商品URL</span>
+        <input type="url" id="e-url" placeholder="https://pokebuchi.base.shop/items/…" autocomplete="off">
+      </label>
+    </div>
+
+    <p class="modal-note" id="e-note"></p>
+
+    <div class="modal-actions">
+      <button type="button" class="danger" id="e-delete">この作品を削除</button>
+      <span class="spacer"></span>
+      <button type="button" class="ghost" id="e-cancel">やめる</button>
+      <button type="button" class="primary" id="e-save">保存する</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast" hidden></div>
+
+<script src="ui.js"></script>
+</body>
+</html>
