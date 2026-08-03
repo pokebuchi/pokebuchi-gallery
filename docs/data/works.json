@@ -1,5 +1,5 @@
 {
- "updated": "2026-08-03T09:17:12",
+ "updated": "2026-08-03T09:33:09",
  "series": [
   {
    "name": "連結フレーム",
@@ -46,6 +46,18 @@
   }
  ],
  "works": [
+  {
+   "name": "MEGAドリームex ARコンプリート",
+   "packs": [
+    "連結フレーム"
+   ],
+   "thumb": "images/thumb/eeaa851fe87f.webp",
+   "large": "images/large/eeaa851fe87f.webp",
+   "w": 4284,
+   "h": 5712,
+   "url": "https://pokebuchi.base.shop/items/145319291",
+   "soldOut": false
+  },
   {
    "name": "ケロマツ / ゲコガシラ / メガゲッコウガex",
    "packs": [
@@ -608,18 +620,6 @@
    "w": 4284,
    "h": 4284,
    "url": "https://pokebuchi.base.shop/items/147708303",
-   "soldOut": false
-  },
-  {
-   "name": "MEGAドリームex ARコンプリート",
-   "packs": [
-    "MEGAドリームex"
-   ],
-   "thumb": "images/thumb/1985cc0f4c99.webp",
-   "large": "images/large/1985cc0f4c99.webp",
-   "w": 4284,
-   "h": 5712,
-   "url": "https://pokebuchi.base.shop/items/145319291",
    "soldOut": false
   },
   {
