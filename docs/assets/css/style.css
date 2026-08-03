@@ -120,6 +120,46 @@ a { color: inherit; }
 
 #search::placeholder { color: var(--muted); }
 
+/* 「カテゴリ」の行。ふだんは閉じていて、押すと中身がひらく */
+.cat-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 13px 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  font-size: 13px;
+  letter-spacing: 0.06em;
+  color: var(--text);
+  text-align: left;
+}
+
+.cat-current {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cat-toggle .chev {
+  flex: 0 0 auto;
+  color: var(--muted);
+  font-size: 10px;
+  transition: transform 0.2s;
+}
+
+.pack-filter.is-open .cat-toggle {
+  border-bottom-color: transparent;
+}
+
+.pack-filter.is-open .cat-toggle .chev { transform: rotate(180deg); }
+
+.cat-panel { display: none; }
+.pack-filter.is-open .cat-panel { display: block; }
+
 /* 「すべて」「連結フレーム」「MEGA」などの行は、すべて同じ見た目にそろえる */
 .pack-all,
 .series-toggle {
@@ -127,7 +167,7 @@ a { color: inherit; }
   align-items: center;
   justify-content: space-between;
   width: 100%;
-  padding: 13px 0;
+  padding: 13px 0 13px 14px;
   font-size: 13px;
   letter-spacing: 0.06em;
   color: var(--text);
@@ -136,6 +176,10 @@ a { color: inherit; }
 
 .pack-all {
   border-top: 1px solid var(--line);
+}
+
+.cat-panel > #series-list > .series:last-child {
+  border-bottom: 1px solid var(--line);
 }
 
 /* 選んでいる行・選んでいるカテゴリは太字にして、いま見ている場所を示す */
@@ -160,7 +204,7 @@ a { color: inherit; }
   display: none;
   flex-wrap: wrap;
   gap: 8px;
-  padding: 0 0 16px;
+  padding: 0 0 16px 14px;
 }
 
 .series.is-open .series-packs { display: flex; }
@@ -278,6 +322,7 @@ main {
   .site-header { padding: 40px var(--pad) 28px; }
   .logo img { width: 92px; }
   main { padding-top: 28px; }
+  .cat-current { max-width: 46vw; }
 }
 
 /* ---------- 状態表示 ---------- */

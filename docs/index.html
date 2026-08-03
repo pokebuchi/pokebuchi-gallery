@@ -16,7 +16,7 @@
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <meta name="theme-color" content="#ffffff">
 
-<link rel="stylesheet" href="assets/css/style.css?v=13">
+<link rel="stylesheet" href="assets/css/style.css?v=14">
 </head>
 <body>
 
@@ -40,9 +40,18 @@
     <input type="search" id="search" placeholder="カード名で探す" autocomplete="off" aria-label="カード名で探す">
   </div>
 
-  <div class="pack-filter">
-    <button type="button" class="pack-all is-active" data-pack="">すべて</button>
-    <div id="series-list"></div>
+  <div class="pack-filter" id="pack-filter">
+    <button type="button" class="cat-toggle" id="cat-toggle"
+            aria-expanded="false" aria-controls="cat-panel">
+      <span>カテゴリ</span>
+      <span class="cat-current" id="cat-current"></span>
+      <span class="chev">&#9660;</span>
+    </button>
+
+    <div class="cat-panel" id="cat-panel">
+      <button type="button" class="pack-all is-active" data-pack="">すべて</button>
+      <div id="series-list"></div>
+    </div>
   </div>
 </div>
 
@@ -90,6 +99,6 @@
   </figure>
 </div>
 
-<script src="assets/js/app.js?v=13"></script>
+<script src="assets/js/app.js?v=14"></script>
 </body>
 </html>

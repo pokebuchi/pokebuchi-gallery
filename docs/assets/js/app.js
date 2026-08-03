@@ -23,6 +23,9 @@
     search: document.getElementById('search'),
     seriesList: document.getElementById('series-list'),
     packAll: document.querySelector('.pack-all'),
+    packFilter: document.getElementById('pack-filter'),
+    catToggle: document.getElementById('cat-toggle'),
+    catCurrent: document.getElementById('cat-current'),
     resultCount: document.getElementById('result-count'),
     empty: document.getElementById('empty'),
     sentinel: document.getElementById('sentinel'),
@@ -252,6 +255,9 @@
     }
 
     el.packAll.classList.toggle('is-active', !state.category && !state.pack);
+
+    // 閉じているときも、いま何で絞り込んでいるかが分かるようにする
+    el.catCurrent.textContent = state.pack || state.category || 'すべて';
   }
 
   /* ---------- ライトボックス ---------- */
@@ -320,6 +326,13 @@
     state.category = '';             // 開いているカテゴリもすべてたたむ
     state.pack = '';
     applyFilter();
+  });
+
+  // 「カテゴリ」の行を押すと、中身の出し入れをする
+  el.catToggle.addEventListener('click', function () {
+    var 開く = !el.packFilter.classList.contains('is-open');
+    el.packFilter.classList.toggle('is-open', 開く);
+    el.catToggle.setAttribute('aria-expanded', 開く ? 'true' : 'false');
   });
 
   el.lbClose.addEventListener('click', closeLightbox);
