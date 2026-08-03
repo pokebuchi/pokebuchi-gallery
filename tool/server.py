@@ -22,6 +22,7 @@ import pathlib
 import mimetypes
 import subprocess
 import urllib.parse
+import urllib.request
 import http.server
 import socketserver
 
@@ -30,12 +31,32 @@ from PIL import Image, ImageOps
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent))
 import build as B                       # noqa: E402  画像処理などを共用する
 
-sys.stdout.reconfigure(encoding="utf-8")
+# 黒い画面を出さずに動かす（pythonw）と、出力先そのものが存在しない。
+# そのままだと print を使っている箇所すべてが落ちるので、捨て場所を用意しておく。
+if sys.stdout is None:
+    sys.stdout = io.StringIO()
+if sys.stderr is None:
+    sys.stderr = io.StringIO()
+try:
+    sys.stdout.reconfigure(encoding="utf-8")
+except Exception:
+    pass
+
+
+def 知らせる(*a):
+    """画面があるときだけ表示する"""
+    try:
+        sys.stdout.write(" ".join(str(x) for x in a) + "\n")
+        sys.stdout.flush()
+    except Exception:
+        pass
+
 
 HERE = pathlib.Path(__file__).resolve().parent
 ROOT = HERE.parent
 UI = HERE
-PORT = 8080
+PORT = 8080                       # 変えない。スマホのホーム画面から開けなくなるため
+HOSTNAME = socket.gethostname().split(".")[0].lower()
 
 # ドロップされた写真をいったん置いておく場所。
 # HEIC はブラウザで表示できないので、ここで小さな確認用画像を作る。
@@ -43,6 +64,47 @@ PORT = 8080
 一時台帳 = 一時 / "台帳.json"
 
 受け付ける拡張子 = {".jpg", ".jpeg", ".png", ".heic", ".heif", ".webp"}
+上限バイト = 60 * 1024 * 1024      # 写真1枚あたりの上限（iPhoneの写真は3〜5MB）
+
+
+def 枠の中か(場所, 親):
+    """
+    その場所が、決められたフォルダの中に収まっているか確かめる。
+
+    ブラウザから送られた文字列をそのまま場所に使うと「../../」のような
+    指定で枠の外に出られてしまうため、最後に必ずここを通す。
+    """
+    try:
+        場所 = pathlib.Path(場所).resolve()
+        親 = pathlib.Path(親).resolve()
+        return 場所 == 親 or 親 in 場所.parents
+    except Exception:
+        return False
+
+
+def 行を取り出す(番):
+    """作品リストの n 行目を返す。範囲外なら None。"""
+    if not isinstance(番, int) or 番 < 0:
+        return None
+    with B.作品リスト.open(encoding="utf-8-sig", newline="") as f:
+        行たち = list(csv.DictReader(f))
+    return 行たち[番] if 番 < len(行たち) else None
+
+
+def その作品の置き場所(番):
+    """
+    行番号から、写真の置き場所を組み立てる。
+
+    フォルダ名やファイル名をブラウザから受け取らないので、
+    枠の外を指定される余地そのものが無くなる。
+    """
+    行 = 行を取り出す(番)
+    if 行 is None:
+        return None
+    フォルダ, 本体 = B.写真の置き場所(行)
+    if not 枠の中か(B.写真 / フォルダ / (本体 + ".jpg"), B.写真):
+        return None
+    return フォルダ, 本体
 
 
 def 整える(s):
@@ -187,8 +249,7 @@ def 作品一覧():
                 "folder": フォルダ,
                 "base": 本体,
                 "hasPhoto": 元 is not None,
-                "preview": f"/preview/{urllib.parse.quote(フォルダ)}/"
-                           f"{urllib.parse.quote(本体)}" if 元 else None,
+                "preview": f"/preview/{i}" if 元 else None,
             })
     return 出力
 
@@ -238,11 +299,54 @@ class Handler(http.server.BaseHTTPRequestHandler):
     def log_message(self, *a):
         pass
 
-    # 同じ Wi-Fi の中からだけ受け付ける（外部からは届かない）
+    # 同じ Wi-Fi（と自分の Tailscale）の中からだけ受け付ける
     def 送り主は身内か(self):
         try:
-            return ipaddress.ip_address(self.client_address[0]).is_private
+            ip = ipaddress.ip_address(self.client_address[0])
         except Exception:
+            return False
+        if ip.is_private or ip.is_loopback:
+            return True
+        # Tailscale の範囲。自分のアカウントに入っている端末しか届かない
+        return ip in ipaddress.ip_network("100.64.0.0/10")
+
+    def 宛先は正しいか(self):
+        """
+        「どの名前でこのPCを呼んだか」を確かめる。
+
+        悪意のあるサイトが、自分のドメイン名をこのPCのアドレスに
+        すり替えて忍び込む手口（DNSリバインディング）を防ぐ。
+        """
+        宛先 = (self.headers.get("Host") or "").split(":")[0].strip().lower()
+        if not 宛先:
+            return False
+        if 宛先 in ("localhost", "127.0.0.1", "::1", HOSTNAME, HOSTNAME + ".local"):
+            return True
+        try:                                   # 数字のアドレスで呼ばれた場合
+            ipaddress.ip_address(宛先)
+            return True
+        except ValueError:
+            return False
+
+    def 送り元は自分自身か(self):
+        """
+        別のサイトの画面から呼び出されていないか確かめる。
+        Origin が付いていて、それが自分自身でなければ拒否する。
+        """
+        送り元 = self.headers.get("Origin")
+        if not 送り元:
+            return True                        # 同じ画面からの通信には付かないことがある
+        try:
+            名 = urllib.parse.urlparse(送り元).hostname or ""
+        except Exception:
+            return False
+        名 = 名.lower()
+        if 名 in ("localhost", "127.0.0.1", "::1", HOSTNAME, HOSTNAME + ".local"):
+            return True
+        try:
+            ipaddress.ip_address(名)
+            return True
+        except ValueError:
             return False
 
     def handle_one_request(self):
@@ -254,6 +358,20 @@ class Handler(http.server.BaseHTTPRequestHandler):
             self.close_connection = True
             return
         super().handle_one_request()
+
+    def 操作を許してよいか(self, 道):
+        """
+        操作（/api/ ではじまるもの）を実行してよいか判断する。
+
+        よそのサイトからは、独自のヘッダーを付けた通信を送れない。
+        送ろうとするとブラウザが事前確認をしてきて、こちらが断る。
+        これで「別のサイトを開いただけで作品が消える」経路をふさぐ。
+        """
+        if not 道.startswith("/api/"):
+            return True
+        if self.headers.get("X-Pokebuchi") != "1":
+            return False
+        return self.宛先は正しいか() and self.送り元は自分自身か()
 
     # ---- 返信のしかた
 
@@ -283,13 +401,29 @@ class Handler(http.server.BaseHTTPRequestHandler):
 
     # ---- GET
 
+    def do_OPTIONS(self):
+        # よそのサイトからの事前確認。許可を返さないので通信は成立しない
+        self.send_error(403)
+
     def do_GET(self):
         道 = urllib.parse.urlparse(self.path).path
+        if not self.宛先は正しいか():
+            return self.send_error(403)
+        if not self.操作を許してよいか(道):
+            return self.返す({"error": "この操作は許可されていません"}, code=403)
 
         if 道 in ("/", "/index.html"):
             return self.ファイルを返す(UI / "ui.html")
-        if 道 in ("/ui.css", "/ui.js"):
+        if 道 in ("/ui.css", "/ui.js", "/favicon.ico", "/icon-180.png"):
             return self.ファイルを返す(UI / 道.lstrip("/"))
+
+        # スマホから開くときのアドレスを画面に伝える
+        if 道 == "/api/where":
+            return self.返す({
+                "phone": f"{HOSTNAME}.local:{PORT}",
+                "ip": (f"{このPCのアドレス()}:{PORT}"
+                       if このPCのアドレス() else None),
+            })
 
         if 道 == "/api/works":
             return self.返す({"works": 作品一覧()})
@@ -318,14 +452,22 @@ class Handler(http.server.BaseHTTPRequestHandler):
 
         if 道.startswith("/staged/"):
             id_ = urllib.parse.unquote(道[len("/staged/"):])
+            # 英数字だけに限る（「../」などで別の場所を読ませない）
+            if not re.fullmatch(r"[0-9a-f]{1,32}", id_):
+                return self.返す({"error": "bad id"}, code=400)
             return self.ファイルを返す(一時 / (id_ + "_p.webp"))
 
         # 割り当て済み写真のプレビュー（縮小済みのものを返す）
         if 道.startswith("/preview/"):
-            部分 = [urllib.parse.unquote(x) for x in 道[len("/preview/"):].split("/")]
-            if len(部分) != 2:
+            # 置き場所はブラウザから受け取らず、作品の行番号から組み立てる
+            try:
+                番 = int(道[len("/preview/"):].split("/")[0])
+            except ValueError:
                 return self.返す({"error": "bad path"}, code=400)
-            フォルダ, 本体 = 部分
+            置き場所 = その作品の置き場所(番)
+            if 置き場所 is None:
+                return self.返す({"error": "no photo"}, code=404)
+            フォルダ, 本体 = 置き場所
             名 = B.hashlib.sha1(f"{フォルダ}/{本体}".encode("utf-8")).hexdigest()[:12]
             p = B.DOCS / "images/thumb" / (名 + ".webp")
             if p.is_file():
@@ -348,6 +490,15 @@ class Handler(http.server.BaseHTTPRequestHandler):
     def do_POST(self):
         u = urllib.parse.urlparse(self.path)
         道, q = u.path, urllib.parse.parse_qs(u.query)
+
+        if not self.操作を許してよいか(道):
+            return self.返す({"error": "この操作は許可されていません"}, code=403)
+
+        長さ = int(self.headers.get("Content-Length") or 0)
+        if 長さ > 上限バイト:
+            return self.返す(
+                {"error": f"大きすぎます（1つあたり {上限バイト // 1024 // 1024}MB まで）"},
+                code=413)
 
         if 道 == "/api/add":
             return self.作品を足す()
@@ -645,12 +796,18 @@ class Handler(http.server.BaseHTTPRequestHandler):
 
     def 写真を割り当てる(self, q):
         """取り込み中の写真を、指定された作品の置き場所へ移す"""
-        フォルダ = (q.get("folder") or [""])[0]
-        本体 = (q.get("base") or [""])[0]
-        id_ = (q.get("id") or [""])[0]
-
-        if not フォルダ or not 本体:
+        # 置き場所はブラウザから受け取らず、作品の行番号から組み立てる
+        try:
+            番 = int((q.get("i") or [""])[0])
+        except ValueError:
             return self.返す({"error": "作品が指定されていません"}, code=400)
+
+        置き場所 = その作品の置き場所(番)
+        if 置き場所 is None:
+            return self.返す({"error": "この作品は見つかりませんでした"}, code=400)
+        フォルダ, 本体 = 置き場所
+
+        id_ = (q.get("id") or [""])[0]
 
         台帳 = 台帳を読む()
         元 = 一時の写真(id_, 台帳)
@@ -686,10 +843,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 {"error": "この写真は読み込めませんでした。\n"
                           "ファイルが壊れていないか確認してください。"}, code=400)
 
-        return self.返す({
-            "ok": True,
-            "preview": f"/preview/{urllib.parse.quote(フォルダ)}/{urllib.parse.quote(本体)}",
-        })
+        return self.返す({"ok": True, "preview": f"/preview/{番}"})
 
     def まとめて作る(self):
         古い, sys.stdout = sys.stdout, io.StringIO()
@@ -727,12 +881,25 @@ class Handler(http.server.BaseHTTPRequestHandler):
         return self.返す({"ok": True, "message": "公開しました。1〜2分で反映されます。"})
 
 
-def 空いているポートを探す(はじめ=PORT):
-    for p in range(はじめ, はじめ + 20):
-        with socket.socket() as s:
-            if s.connect_ex(("127.0.0.1", p)) != 0:
-                return p
-    return はじめ
+def すでに動いているか():
+    """
+    同じ画面がもう立ち上がっていないか確かめる。
+
+    ポートがずれると、スマホのホーム画面に登録したアイコンから
+    開けなくなってしまうので、8080 は動かさず二重起動のほうを止める。
+    """
+    with socket.socket() as s:
+        s.settimeout(1)
+        if s.connect_ex(("127.0.0.1", PORT)) != 0:
+            return False
+    try:
+        req = urllib.request.Request(
+            f"http://127.0.0.1:{PORT}/api/works",
+            headers={"X-Pokebuchi": "1", "Host": "localhost"})
+        with urllib.request.urlopen(req, timeout=3) as r:
+            return r.status == 200
+    except Exception:
+        return False
 
 
 def このPCのアドレス():
@@ -752,32 +919,80 @@ class つなぎっぱなしサーバー(socketserver.ThreadingTCPServer):
     allow_reuse_address = True
 
 
+def 画面の題名にする(文字):
+    """コマンド画面の上に出る名前を日本語にする"""
+    try:
+        import ctypes
+        ctypes.windll.kernel32.SetConsoleTitleW(文字)
+    except Exception:
+        pass
+
+
+def 開く(url):
+    try:
+        import webbrowser
+        webbrowser.open(url)
+    except Exception:
+        pass
+
+
 def main():
-    port = 空いているポートを探す()
-    with つなぎっぱなしサーバー(("0.0.0.0", port), Handler) as httpd:
-        url = f"http://localhost:{port}"
+    スマホ用 = f"http://{HOSTNAME}.local:{PORT}"
+    PC用 = f"http://localhost:{PORT}"
+
+    # すでに動いていたら、二重に立ち上げず画面を開くだけにする
+    if すでに動いているか():
+        知らせる(f"\n  すでに動いています。画面を開きます → {PC用}\n")
+        開く(PC用)
+        return
+
+    画面の題名にする("ポケぶち｜写真を入れる")
+
+    with つなぎっぱなしサーバー(("0.0.0.0", PORT), Handler) as httpd:
         ip = このPCのアドレス()
-
-        print("=" * 52)
-        print("  ポケぶち｜写真を入れる画面")
-        print("=" * 52)
-        print(f"\n  【このパソコンで】  {url}")
+        知らせる()
+        知らせる("  ====================================================")
+        知らせる("     ポケぶち　写真を入れる")
+        知らせる("  ====================================================")
+        知らせる()
+        知らせる(f"    このパソコンで  →  {PC用}")
+        知らせる(f"    スマホで        →  {スマホ用}")
         if ip:
-            print(f"  【スマホで】        http://{ip}:{port}")
-            print("     ※ スマホが同じ Wi-Fi につながっている必要があります")
-        print("\n  同じ Wi-Fi の中からしか開けません。外部には公開されていません。")
-        print("  終わるときは、この黒い画面を閉じてください。\n")
+            知らせる(f"                       （{'http://%s:%d' % (ip, PORT)} でも可）")
+        知らせる()
+        知らせる("    スマホから使うときは、同じ Wi-Fi につないでから")
+        知らせる("    上のアドレスを Safari に入力してください。")
+        知らせる()
+        知らせる("  ----------------------------------------------------")
+        知らせる("    同じ Wi-Fi の中からしか開けません。")
+        知らせる("    外部には公開されていません。")
+        知らせる()
+        知らせる("    終わるときは、この画面を閉じてください。")
+        知らせる("  ----------------------------------------------------")
+        知らせる()
 
-        try:
-            import webbrowser
-            webbrowser.open(url)
-        except Exception:
-            pass
+        開く(PC用)
         try:
             httpd.serve_forever()
         except KeyboardInterrupt:
-            print("\n終了しました。")
+            知らせる("\n  終了しました。")
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception as e:
+        # うまく動かなかったときは、理由を出したまま画面を残す
+        知らせる()
+        知らせる("  ----------------------------------------------------")
+        知らせる("    うまく起動できませんでした。")
+        知らせる(f"    理由: {e}")
+        知らせる()
+        知らせる("    この画面をそのまま撮って送ってください。")
+        知らせる("  ----------------------------------------------------")
+        知らせる()
+        try:
+            input("    Enter キーを押すと閉じます ... ")
+        except Exception:
+            pass
+        sys.exit(1)

@@ -3,6 +3,22 @@
 (function () {
   'use strict';
 
+  /* -------------------------------------------------------------------
+     この画面からの通信だと分かる印を、すべてに自動で付ける。
+
+     よそのWebサイトからは、この種の独自ヘッダーを付けた通信を送れない。
+     （送ろうとするとブラウザが事前確認をし、サーバーがそれを断る）
+     これで「別のサイトを開いただけで作品が消される」経路をふさぐ。
+     ------------------------------------------------------------------- */
+  var 素のfetch = window.fetch.bind(window);
+  window.fetch = function (先, 設定) {
+    設定 = 設定 || {};
+    var h = new Headers(設定.headers || {});
+    h.set('X-Pokebuchi', '1');
+    設定.headers = h;
+    return 素のfetch(先, 設定);
+  };
+
   var works = [];        // 作品リスト
   var tray = [];         // まだ割り当てていない写真（ブラウザの中だけ）
   var picked = null;     // クリックで選んでいる写真
@@ -309,9 +325,7 @@
 
   function assign(item, w) {
     if (!item) return;
-    var q = '?folder=' + encodeURIComponent(w.folder) +
-            '&base=' + encodeURIComponent(w.base) +
-            '&id=' + encodeURIComponent(item.id);
+    var q = '?i=' + encodeURIComponent(w.i) + '&id=' + encodeURIComponent(item.id);
 
     fetch('/api/assign' + q, { method: 'POST' })
       .then(function (r) { return r.json().then(function (d) { return { ok: r.ok, d: d }; }); })
@@ -776,6 +790,14 @@
     packFilter = e.target.value;
     render();
   });
+
+  // スマホ用のアドレスを、サーバーから聞いて表示する
+  fetch('/api/where')
+    .then(function (r) { return r.json(); })
+    .then(function (d) {
+      if (d && d.phone) $('howto-addr').textContent = d.phone;
+    })
+    .catch(function () {});
 
   load().then(loadStaged);
 })();
