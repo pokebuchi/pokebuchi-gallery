@@ -1,5 +1,5 @@
 {
- "updated": "2026-08-03T23:27:32",
+ "updated": "2026-08-04T09:30:18",
  "series": [
   {
    "name": "連結フレーム",
@@ -46,6 +46,18 @@
   }
  ],
  "works": [
+  {
+   "name": "カイオーガ / グラードン",
+   "packs": [
+    "連結フレーム"
+   ],
+   "thumb": "images/thumb/d4a0378cbb98.webp",
+   "large": "images/large/d4a0378cbb98.webp",
+   "w": 4220,
+   "h": 4220,
+   "url": "https://pokebuchi.base.shop/items/152868253",
+   "soldOut": false
+  },
   {
    "name": "MEGAドリームex ARコンプリート",
    "packs": [
