@@ -226,6 +226,13 @@ def 作品一覧():
         return []
 
     分類 = B.カテゴリを読む()
+
+    # ギャラリーと同じ順に並べるための下ごしらえ
+    # （カテゴリの順 → その中のパックの順 → 作品リストの行の順）
+    カテゴリ順 = {}
+    for r in B.カテゴリ表を読む():
+        カテゴリ順.setdefault(r["カテゴリ"], len(カテゴリ順))
+
     出力 = []
     with B.作品リスト.open(encoding="utf-8-sig", newline="") as f:
         for i, 行 in enumerate(csv.DictReader(f)):
@@ -237,12 +244,14 @@ def 作品一覧():
 
             パック群 = [p.strip() for p in (行.get("パック名") or "").split("/") if p.strip()]
             主 = B.連結カテゴリ if B.連結カテゴリ in パック群 else (パック群[0] if パック群 else "")
+            かて, パック位置 = 分類.get(主, ("その他", 9999))
             出力.append({
+                "_順": (カテゴリ順.get(かて, 9999), パック位置, i),
                 "i": i,
                 "name": 名前,
                 "packs": パック群,
                 "mainPack": 主,
-                "category": 分類.get(主, ("その他", 999))[0],
+                "category": かて,
                 "number": (行.get("ナンバー") or "").strip(),
                 "url": (行.get("商品URL") or "").strip(),
                 "isRenketsu": B.連結カテゴリ in パック群,
@@ -251,6 +260,10 @@ def 作品一覧():
                 "hasPhoto": 元 is not None,
                 "preview": f"/preview/{i}" if 元 else None,
             })
+
+    出力.sort(key=lambda a: a["_順"])
+    for a in 出力:
+        del a["_順"]
     return 出力
 
 
