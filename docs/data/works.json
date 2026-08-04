@@ -1,5 +1,5 @@
 {
- "updated": "2026-08-04T21:22:43",
+ "updated": "2026-08-04T21:50:16",
  "series": [
   {
    "name": "連結フレーム",
@@ -549,18 +549,6 @@
    "w": 4284,
    "h": 4284,
    "url": "https://pokebuchi.base.shop/items/150722088",
-   "soldOut": false
-  },
-  {
-   "name": "アゲハント",
-   "packs": [
-    "MEGAドリームex"
-   ],
-   "thumb": "images/thumb/401fba7d987c.webp",
-   "large": "images/large/401fba7d987c.webp",
-   "w": 4284,
-   "h": 4284,
-   "url": "https://pokebuchi.base.shop/items/144892952",
    "soldOut": false
   },
   {
@@ -1173,30 +1161,6 @@
    "w": 4284,
    "h": 4284,
    "url": "https://pokebuchi.base.shop/items/152398672",
-   "soldOut": false
-  },
-  {
-   "name": "ディアンシー",
-   "packs": [
-    "VSTARユニバース"
-   ],
-   "thumb": "images/thumb/d1d0b9b8497f.webp",
-   "large": "images/large/d1d0b9b8497f.webp",
-   "w": 4284,
-   "h": 4284,
-   "url": "https://pokebuchi.base.shop/items/152185928",
-   "soldOut": false
-  },
-  {
-   "name": "リザードンV",
-   "packs": [
-    "VSTARユニバース"
-   ],
-   "thumb": "images/thumb/7519ca2fa796.webp",
-   "large": "images/large/7519ca2fa796.webp",
-   "w": 4284,
-   "h": 4284,
-   "url": "https://pokebuchi.base.shop/items/152306084",
    "soldOut": false
   },
   {
