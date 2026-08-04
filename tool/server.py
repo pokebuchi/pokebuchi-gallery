@@ -704,10 +704,22 @@ class Handler(http.server.BaseHTTPRequestHandler):
             if 元写真:
                 先 = B.写真 / 新フォルダ
                 先.mkdir(parents=True, exist_ok=True)
-                古い先 = B.写真をさがす(新フォルダ, 新本体)
-                if 古い先:
-                    古い先.unlink(missing_ok=True)
-                元写真.replace(先 / (新本体 + 元写真.suffix))
+                行き先 = 先 / (新本体 + 元写真.suffix)
+
+                # Windows はファイル名の大文字小文字を区別しない。
+                # 「S12a → s12a」のように綴りだけ変えた場合、元と先が
+                # 同じファイルを指すので、消してから移すと写真が失われる。
+                同じもの = (元写真.resolve() == 行き先.resolve()
+                            or str(元写真).lower() == str(行き先).lower())
+                if 同じもの:
+                    仮 = 元写真.with_name("__" + 元写真.name)   # 一度よけてから戻す
+                    元写真.replace(仮)
+                    仮.replace(行き先)
+                else:
+                    古い先 = B.写真をさがす(新フォルダ, 新本体)
+                    if 古い先 and 古い先.resolve() != 元写真.resolve():
+                        古い先.unlink(missing_ok=True)
+                    元写真.replace(行き先)
                 写真も動かした = True
             self.画像を捨てる(旧フォルダ, 旧本体)
 
