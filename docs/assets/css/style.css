@@ -304,20 +304,25 @@ main {
 }
 
 /* 作品名は写真の中央に合わせる。
-   2行になる名前があってもガタつかないよう、あらかじめ2行分の高さを確保する。 */
+   連結フレームのような長い名前は3行になるので、あらかじめ3行分の高さを
+   確保しておく。こうしないと、行ごとに高さが変わって写真の位置がずれる。 */
 .card-name {
   margin: 12px 0 0;
   font-size: 13px;
   line-height: 1.5;
   letter-spacing: 0.02em;
   text-align: center;
-  min-height: 3em;
+  min-height: 4.5em;              /* 3行ぶん */
+  display: -webkit-box;
+  -webkit-line-clamp: 3;          /* 万一4行になっても崩さない */
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 /* スマホは3列で幅が狭いので、余白と文字を詰める */
 @media (max-width: 599px) {
   :root { --pad: 14px; }
-  .card-name { margin-top: 7px; font-size: 11px; line-height: 1.4; min-height: 2.8em; }
+  .card-name { margin-top: 7px; font-size: 11px; line-height: 1.4; min-height: 4.2em; }
   .badge-sold { left: 4px; top: 4px; padding: 2px 5px; font-size: 9px; }
   .site-header { padding: 40px var(--pad) 28px; }
   .logo img { width: 92px; }
