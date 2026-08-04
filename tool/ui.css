@@ -320,24 +320,42 @@ main { padding: 16px 20px 80px; }
 
 .work-info { padding: 8px 10px 10px; }
 
+/* 連結フレームのような長い名前は3行になる。
+   あらかじめ3行分の高さを確保して、写真の位置がずれないようにする。 */
 .work-name {
   margin: 0;
   font-size: 13px;
   font-weight: 600;
   line-height: 1.35;
   word-break: break-word;
+  min-height: 4.05em;             /* 3行ぶん */
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
+/* パック名も、連結フレームだと2つ並んで2行になることがある */
 .work-pack {
   margin: 3px 0 0;
   font-size: 11px;
   color: #8b8b93;
+  line-height: 1.4;
+  min-height: 2.8em;              /* 2行ぶん */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .work-no {
   margin: 1px 0 0;
   font-size: 10px;
+  line-height: 1.4;
   color: #b0b0b8;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .empty {
