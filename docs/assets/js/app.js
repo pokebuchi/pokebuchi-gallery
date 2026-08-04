@@ -214,6 +214,27 @@
     });
   }
 
+  /* 押した項目の見出しが、画面のいちばん上に来るように動かす。
+     MEGA の中のパックを押したときも、MEGA の行が上に来る。      */
+  function 見出しまで動く(要素) {
+    if (!要素) return;
+    // 並べ替えで高さが変わったあとに測りたいので、描画の直後に実行する
+    var 実行 = function () {
+      var y = 要素.getBoundingClientRect().top + window.pageYOffset - 4;
+      if ('scrollBehavior' in document.documentElement.style) {
+        window.scrollTo({ top: y, behavior: 'smooth' });
+      } else {
+        window.scrollTo(0, y);       // 古い端末むけ
+      }
+    };
+    if (window.requestAnimationFrame) window.requestAnimationFrame(実行);
+    else 実行();
+  }
+
+  function カテゴリの行(名) {
+    return el.seriesList.querySelector('.series[data-series="' + 名 + '"]');
+  }
+
   // カテゴリの見出しを押したとき
   function selectCategory(名) {
     if (state.category === 名 && !state.pack) {
@@ -223,7 +244,7 @@
       state.pack = '';               // 中のパック指定は外す
     }
     applyFilter();
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    見出しまで動く(カテゴリの行(名));
   }
 
   // カテゴリの中のパックを押したとき
@@ -231,7 +252,7 @@
     state.category = カテゴリ;
     state.pack = (state.pack === p) ? '' : p;
     applyFilter();
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    見出しまで動く(カテゴリの行(カテゴリ));   // 大カテゴリの行を上に持ってくる
   }
 
   function countOf(pack) {
@@ -326,6 +347,7 @@
     state.category = '';             // 開いているカテゴリもすべてたたむ
     state.pack = '';
     applyFilter();
+    見出しまで動く(el.packAll);        // 「すべて」の行を画面の上に持ってくる
   });
 
   // 「カテゴリ」の行を押すと、中身の出し入れをする

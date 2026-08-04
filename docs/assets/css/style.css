@@ -328,6 +328,8 @@ main {
   .logo img { width: 92px; }
   main { padding-top: 28px; }
   .cat-current { max-width: 46vw; }
+  .site-footer { padding: 8px var(--pad) 36px; }
+  .copyright { margin-top: 20px; }
 }
 
 /* ---------- 状態表示 ---------- */
@@ -346,7 +348,7 @@ main {
 .site-footer {
   max-width: var(--maxw);
   margin: 0 auto;
-  padding: 96px var(--pad) 72px;
+  padding: 20px var(--pad) 52px;
   text-align: center;
 }
 
@@ -363,7 +365,7 @@ main {
 .shop-link:hover { background: var(--text); color: #fff; }
 
 .copyright {
-  margin: 40px 0 0;
+  margin: 32px 0 0;
   font-size: 10px;
   letter-spacing: 0.1em;
   color: var(--muted);
