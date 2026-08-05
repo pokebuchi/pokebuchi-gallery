@@ -1,5 +1,5 @@
 {
- "updated": "2026-08-04T21:55:15",
+ "updated": "2026-08-05T09:44:08",
  "series": [
   {
    "name": "連結フレーム",
@@ -282,8 +282,8 @@
    ],
    "thumb": "images/thumb/6d38743d91a5.webp",
    "large": "images/large/6d38743d91a5.webp",
-   "w": 4188,
-   "h": 4188,
+   "w": 4284,
+   "h": 4284,
    "url": "https://pokebuchi.base.shop/items/144897736",
    "soldOut": false
   },
@@ -582,8 +582,8 @@
    ],
    "thumb": "images/thumb/4b835072a5e8.webp",
    "large": "images/large/4b835072a5e8.webp",
-   "w": 3024,
-   "h": 3024,
+   "w": 4284,
+   "h": 4284,
    "url": "https://pokebuchi.base.shop/items/144893385",
    "soldOut": false
   },
@@ -594,8 +594,8 @@
    ],
    "thumb": "images/thumb/387619e6a77a.webp",
    "large": "images/large/387619e6a77a.webp",
-   "w": 3024,
-   "h": 3024,
+   "w": 4284,
+   "h": 4284,
    "url": "https://pokebuchi.base.shop/items/144893671",
    "soldOut": false
   },
